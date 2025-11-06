@@ -1053,7 +1053,7 @@ export function ViewGrades() {
                                       </span>
                                       {scoreData.attemptCount && scoreData.attemptCount > 1 && (
                                         <div className="mt-1">
-                                          {attemptDisplayMode === 'best' && scoreData.lastScore !== undefined && scoreData.lastScore !== scoreData.bestScore && (
+                                          {attemptDisplayMode === 'best' && scoreData.lastScore !== undefined && scoreData.bestScore !== undefined && scoreData.lastScore !== scoreData.bestScore && (
                                             <div 
                                               className={`text-xs px-1.5 py-0.5 rounded border text-center ${
                                                 scoreData.lastScore > scoreData.bestScore 
