@@ -267,14 +267,22 @@ export const assignmentService = {
   },
 
   async getByStudent(studentId: string): Promise<{ data: AssignmentWithExam[] | null, error: any }> {
+    console.log('[assignmentService.getByStudent] Starting fetch for student:', studentId)
     // Get all classes the student is enrolled in
-    const { data: enrollments } = await enrollmentService.getByStudent(studentId)
+    const { data: enrollments, error: enrollmentsError } = await enrollmentService.getByStudent(studentId)
+    if (enrollmentsError) {
+      console.error('[assignmentService.getByStudent] Error fetching enrollments:', enrollmentsError)
+      return { data: null, error: enrollmentsError }
+    }
     if (!enrollments || enrollments.length === 0) {
+      console.log('[assignmentService.getByStudent] No enrollments found for student')
       return { data: [], error: null }
     }
 
     const classIds = enrollments.map(e => e.class_id).filter(Boolean)
+    console.log('[assignmentService.getByStudent] Class IDs:', classIds)
     if (classIds.length === 0) {
+      console.log('[assignmentService.getByStudent] No valid class IDs')
       return { data: [], error: null }
     }
 
@@ -285,16 +293,35 @@ export const assignmentService = {
       .eq('is_active', true)
       .order('assigned_at', { ascending: false })
 
-    if (error || !assignments) return { data: null, error }
+    console.log('[assignmentService.getByStudent] Assignment query result:', {
+      error,
+      errorCode: error?.code,
+      errorMessage: error?.message,
+      assignmentCount: assignments?.length,
+      assignments: assignments?.map(a => ({ id: a.id, exam_id: a.exam_id, class_id: a.class_id, is_active: a.is_active }))
+    })
+
+    if (error) {
+      console.error('[assignmentService.getByStudent] Error fetching assignments:', error)
+      return { data: null, error }
+    }
+    if (!assignments) {
+      return { data: [], error: null }
+    }
 
     // Enrich with exam information
     const assignmentsWithExams = await Promise.all(
       assignments.map(async (assignment) => {
-        const { data: exam } = await supabase
+        const { data: exam, error: examError } = await supabase
           .from('exams')
           .select('title, total_marks')
           .eq('id', assignment.exam_id)
           .single()
+
+        if (examError) {
+          console.error(`[assignmentService.getByStudent] Error fetching exam ${assignment.exam_id}:`, examError)
+          // Continue with unknown values rather than failing completely
+        }
 
         return {
           ...assignment,
@@ -304,6 +331,7 @@ export const assignmentService = {
       })
     )
 
+    console.log('[assignmentService.getByStudent] Final enriched assignments count:', assignmentsWithExams.length)
     return { data: assignmentsWithExams, error: null }
   },
 

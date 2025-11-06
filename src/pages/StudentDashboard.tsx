@@ -4,15 +4,22 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useStudentAssignments } from '@/hooks/useAssignments'
-import { BookOpen, Calendar } from 'lucide-react'
+import { BookOpen, Calendar, RefreshCw } from 'lucide-react'
 import { ListSkeleton } from '@/components/ui/page-skeleton'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function StudentDashboard() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   
   // Use React Query hook for optimized data fetching with caching
-  const { data: assignedExams = [], isLoading: loading } = useStudentAssignments(user?.id || '')
+  const { data: assignedExams = [], isLoading: loading, error, refetch } = useStudentAssignments(user?.id || '')
+  
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['assignments', 'student', user?.id] })
+    refetch()
+  }, [queryClient, user?.id, refetch])
   
   const handleTakeExam = useCallback((examId: string) => {
     navigate(`/student/exams/${examId}/take`)
@@ -41,16 +48,40 @@ export function StudentDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              My Assigned Exams
-            </CardTitle>
-            <CardDescription>
-              Exams assigned to you by your teachers. You can only see exams that have been assigned to your classes.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  My Assigned Exams
+                </CardTitle>
+                <CardDescription>
+                  Exams assigned to you by your teachers. You can only see exams that have been assigned to your classes.
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {error ? (
+              <div className="space-y-2">
+                <p className="text-destructive font-medium">Error loading assignments</p>
+                <p className="text-sm text-muted-foreground">
+                  {error instanceof Error ? error.message : 'An unknown error occurred'}
+                </p>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  Try Again
+                </Button>
+              </div>
+            ) : loading ? (
               <ListSkeleton count={3} />
             ) : assignedExams.length === 0 ? (
               <p className="text-muted-foreground">

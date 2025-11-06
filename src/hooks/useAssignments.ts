@@ -14,7 +14,11 @@ export function useStudentAssignments(studentId: string) {
       if (!studentId) return []
       
       // Fetch assignments
-      const { data: assignments } = await assignmentService.getByStudent(studentId)
+      const { data: assignments, error } = await assignmentService.getByStudent(studentId)
+      if (error) {
+        console.error('[useStudentAssignments] Error fetching assignments:', error)
+        throw error
+      }
       if (!assignments || assignments.length === 0) return []
 
       // Batch load all exams at once
@@ -67,7 +71,9 @@ export function useStudentAssignments(studentId: string) {
       return enrichedAssignments
     },
     enabled: !!studentId,
-    staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds (reduced from 2 minutes)
+    refetchOnWindowFocus: true, // Refetch when user returns to the tab
+    refetchOnMount: true, // Refetch when component mounts
   })
 }
 
