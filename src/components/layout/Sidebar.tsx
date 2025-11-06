@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   PanelLeftOpen,
   Users,
   BarChart3,
+  BookOpen,
 } from 'lucide-react'
 
 interface MenuItem {
@@ -42,6 +43,12 @@ const teacherMenuItems: MenuItem[] = [
     roles: ['teacher'],
   },
   {
+    label: 'Grades',
+    icon: <BookOpen className="h-5 w-5" />,
+    path: '/teacher/grades',
+    roles: ['teacher'],
+  },
+  {
     label: 'Analytics',
     icon: <BarChart3 className="h-5 w-5" />,
     path: '/teacher/analytics',
@@ -60,6 +67,12 @@ const studentMenuItems: MenuItem[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard className="h-5 w-5" />,
     path: '/student/dashboard',
+    roles: ['student'],
+  },
+  {
+    label: 'My Grades',
+    icon: <BookOpen className="h-5 w-5" />,
+    path: '/student/grades',
     roles: ['student'],
   },
   {
@@ -125,17 +138,23 @@ export function Sidebar() {
     )
   }
 
-  const menuItems = profile.role === 'teacher' ? teacherMenuItems : studentMenuItems
-  const isActive = (path: string) => location.pathname === path
+  // Memoize menu items to prevent recalculation
+  const menuItems = useMemo(
+    () => profile.role === 'teacher' ? teacherMenuItems : studentMenuItems,
+    [profile.role]
+  )
+  
+  // Memoize isActive function
+  const isActive = useCallback((path: string) => location.pathname === path, [location.pathname])
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut()
     navigate('/auth', { replace: true })
-  }
+  }, [signOut, navigate])
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed)
-  }
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed((prev: boolean) => !prev)
+  }, [])
 
   const SidebarContent = () => (
     <div className={`flex h-full flex-col bg-card border-r transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>

@@ -1,63 +1,59 @@
-import { useState, useEffect } from 'react'
+import { useCallback, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { examService, type Exam } from '@/lib/examService'
+import { useExamsByTeacher, useDeleteExam, useToggleExamPublish } from '@/hooks/useExams'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Edit2, Trash2, Eye, Copy, CheckCircle2, XCircle } from 'lucide-react'
+import { ListSkeleton } from '@/components/ui/page-skeleton'
 
 interface ExamListProps {
   teacherId: string
 }
 
-export function ExamList({ teacherId }: ExamListProps) {
+export const ExamList = memo(function ExamList({ teacherId }: ExamListProps) {
   const navigate = useNavigate()
-  const [exams, setExams] = useState<Exam[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadExams()
-  }, [teacherId])
-
-  const loadExams = async () => {
-    setLoading(true)
-    const { data, error } = await examService.getByTeacher(teacherId)
-    if (!error && data) {
-      setExams(data)
-    }
-    setLoading(false)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this exam?')) return
-    const { error } = await examService.delete(id)
-    if (!error) {
-      await loadExams()
-    }
-  }
-
-  const handlePublish = async (id: string, currentStatus: boolean) => {
-    if (currentStatus) {
-      await examService.unpublish(id)
-    } else {
-      await examService.publish(id)
-    }
-    await loadExams()
-  }
-
-  const handleDuplicate = async (exam: Exam) => {
-    // Create a copy of the exam
-    const { data: newExam, error } = await examService.create({
-      ...exam,
-      title: `${exam.title} (Copy)`,
-      is_published: false,
-    })
-    if (!error && newExam) {
+  const queryClient = useQueryClient()
+  
+  // Use React Query for data fetching with automatic caching
+  const { data: exams = [], isLoading } = useExamsByTeacher(teacherId)
+  const deleteExam = useDeleteExam()
+  const togglePublish = useToggleExamPublish()
+  
+  // Mutation for duplicating exam
+  const duplicateExam = useMutation({
+    mutationFn: async (exam: Exam) => {
+      const { data: newExam, error } = await examService.create({
+        ...exam,
+        title: `${exam.title} (Copy)`,
+        is_published: false,
+      })
+      if (error) throw error
+      return newExam
+    },
+    onSuccess: (newExam) => {
+      // Invalidate exams list to show the new exam
+      queryClient.invalidateQueries({ queryKey: ['exams'] })
       navigate(`/teacher/exams/${newExam.id}/edit`)
-    }
-  }
+    },
+  })
 
-  if (loading) {
-    return <p>Loading exams...</p>
+  const handleDelete = useCallback(async (id: string) => {
+    if (!confirm('Are you sure you want to delete this exam?')) return
+    deleteExam.mutate(id)
+  }, [deleteExam])
+
+  const handlePublish = useCallback(async (id: string, currentStatus: boolean) => {
+    togglePublish.mutate({ examId: id, publish: !currentStatus })
+  }, [togglePublish])
+
+  const handleDuplicate = useCallback(async (exam: Exam) => {
+    duplicateExam.mutate(exam)
+  }, [duplicateExam])
+
+  if (isLoading) {
+    return <ListSkeleton count={3} />
   }
 
   return (
@@ -148,5 +144,5 @@ export function ExamList({ teacherId }: ExamListProps) {
       )}
     </div>
   )
-}
+})
 

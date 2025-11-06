@@ -146,6 +146,21 @@ export const questionService = {
     return { data, error }
   },
 
+  /**
+   * Batch fetch questions for multiple exams (optimized for analytics)
+   */
+  async getByExams(examIds: string[]) {
+    if (examIds.length === 0) {
+      return { data: [], error: null }
+    }
+    const { data, error } = await supabase
+      .from('questions')
+      .select('*')
+      .in('exam_id', examIds)
+      .order('created_at')
+    return { data, error }
+  },
+
   async create(question: Omit<Question, 'id' | 'created_at' | 'updated_at'>) {
     const { data, error } = await supabase
       .from('questions')
@@ -281,6 +296,21 @@ export const attemptService = {
     return { data, error }
   },
 
+  /**
+   * Batch fetch attempts for multiple students (optimized for analytics)
+   */
+  async getByStudents(studentIds: string[]) {
+    if (studentIds.length === 0) {
+      return { data: [], error: null }
+    }
+    const { data, error } = await supabase
+      .from('exam_attempts')
+      .select('*')
+      .in('student_id', studentIds)
+      .order('created_at', { ascending: false })
+    return { data, error }
+  },
+
   async update(id: string, updates: Partial<ExamAttempt>) {
     const { data, error } = await supabase
       .from('exam_attempts')
@@ -316,6 +346,20 @@ export const answerService = {
       .from('student_answers')
       .select('*')
       .eq('attempt_id', attemptId)
+    return { data, error }
+  },
+
+  /**
+   * Batch fetch answers for multiple attempts (optimized for analytics)
+   */
+  async getByAttempts(attemptIds: string[]) {
+    if (attemptIds.length === 0) {
+      return { data: [], error: null }
+    }
+    const { data, error } = await supabase
+      .from('student_answers')
+      .select('*')
+      .in('attempt_id', attemptIds)
     return { data, error }
   },
 

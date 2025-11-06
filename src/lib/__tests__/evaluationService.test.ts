@@ -177,7 +177,8 @@ describe('evaluationService', () => {
 
       // "London England capital" matches 3 out of 4 key terms (75%)
       const result = await evaluationService.evaluateFIB(question, 'London England capital')
-      expect(result.is_correct).toBe(true)
+      // Partial credit returns undefined for is_correct (not true or false)
+      expect(result.is_correct).toBeUndefined()
       expect(result.score).toBeGreaterThan(0)
     })
 
@@ -234,7 +235,8 @@ describe('evaluationService', () => {
         },
       })
 
-      expect(result.score).toBe(7.5)
+      // Score is rounded to whole number in evaluateAllAnswers
+      expect(result.score).toBe(8)
       expect(result.ai_evaluation).toBeDefined()
       expect(result.ai_evaluation.feedback).toBe('Good answer with some areas for improvement.')
       expect(result.ai_evaluation.evaluation_metadata.accuracy).toBe(75)

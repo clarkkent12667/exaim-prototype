@@ -1,63 +1,51 @@
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExamList } from '@/components/exam/ExamList'
-import { examService, attemptService } from '@/lib/examService'
+import { attemptService } from '@/lib/examService'
+import { useExamsByTeacher } from '@/hooks/useExams'
+import { useQuery } from '@tanstack/react-query'
 import { Plus, Settings, BookOpen, Users, CheckCircle2, Clock, TrendingUp, Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function TeacherDashboard() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
-  const [stats, setStats] = useState({
-    totalExams: 0,
-    publishedExams: 0,
-    totalAttempts: 0,
-    completedAttempts: 0,
+  
+  // Use React Query for exams data with caching
+  const { data: exams = [], isLoading: examsLoading } = useExamsByTeacher(user?.id || '')
+  
+  // Fetch attempts for all exams (only if we have exams)
+  const { data: allAttempts = [] } = useQuery({
+    queryKey: ['attempts', 'exams', exams.map(e => e.id)],
+    queryFn: async () => {
+      if (exams.length === 0) return []
+      const examIds = exams.map(e => e.id)
+      const { data } = await attemptService.getByExams(examIds)
+      return data || []
+    },
+    enabled: exams.length > 0, // Only fetch if we have exams
+    staleTime: 2 * 60 * 1000, // 2 minutes
   })
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (user) {
-      loadStats()
+  // Memoize stats calculation to avoid recalculation on every render
+  const stats = useMemo(() => {
+    const totalExams = exams.length
+    const publishedExams = exams.filter(e => e.is_published).length
+    const totalAttempts = allAttempts.length
+    const completedAttempts = allAttempts.filter(a => a.status === 'completed').length
+    
+    return {
+      totalExams,
+      publishedExams,
+      totalAttempts,
+      completedAttempts,
     }
-  }, [user])
-
-  const loadStats = async () => {
-    setLoading(true)
-    try {
-      // Load exams
-      const { data: exams } = await examService.getByTeacher(user!.id)
-      const totalExams = exams?.length || 0
-      const publishedExams = exams?.filter(e => e.is_published).length || 0
-
-      // Batch load attempts for all exams at once instead of N+1 queries
-      let totalAttempts = 0
-      let completedAttempts = 0
-      
-      if (exams && exams.length > 0) {
-        const examIds = exams.map(e => e.id)
-        const { data: allAttempts } = await attemptService.getByExams(examIds)
-        
-        if (allAttempts) {
-          totalAttempts = allAttempts.length
-          completedAttempts = allAttempts.filter(a => a.status === 'completed').length
-        }
-      }
-
-      setStats({
-        totalExams,
-        publishedExams,
-        totalAttempts,
-        completedAttempts,
-      })
-    } catch (error) {
-      // Error loading stats
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [exams, allAttempts])
+  
+  const loading = examsLoading
 
   if (!user || !profile) {
     return (
@@ -68,28 +56,28 @@ export function TeacherDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-7xl w-full">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Teacher Dashboard</h1>
-            <p className="text-muted-foreground text-lg">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Teacher Dashboard</h1>
+            <p className="text-muted-foreground text-sm sm:text-base lg:text-lg">
               Welcome back, <span className="font-semibold text-foreground">{profile?.full_name || user?.email}</span>
             </p>
           </div>
-          <Button variant="outline" onClick={() => navigate('/teacher/attempts')}>
+          <Button variant="outline" onClick={() => navigate('/teacher/attempts')} className="w-full sm:w-auto">
             View All Student Attempts
           </Button>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="border-2 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-3">
             <CardDescription className="text-sm font-medium">Total Exams</CardDescription>
             <CardTitle className="text-3xl font-bold flex items-center gap-2">
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.totalExams}
+              {loading ? <Skeleton className="h-8 w-12" /> : stats.totalExams}
               <BookOpen className="h-6 w-6 text-blue-600" />
             </CardTitle>
           </CardHeader>
@@ -102,7 +90,7 @@ export function TeacherDashboard() {
           <CardHeader className="pb-3">
             <CardDescription className="text-sm font-medium">Published Exams</CardDescription>
             <CardTitle className="text-3xl font-bold flex items-center gap-2">
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.publishedExams}
+              {loading ? <Skeleton className="h-8 w-12" /> : stats.publishedExams}
               <CheckCircle2 className="h-6 w-6 text-green-600" />
             </CardTitle>
           </CardHeader>
@@ -115,7 +103,7 @@ export function TeacherDashboard() {
           <CardHeader className="pb-3">
             <CardDescription className="text-sm font-medium">Total Attempts</CardDescription>
             <CardTitle className="text-3xl font-bold flex items-center gap-2">
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.totalAttempts}
+              {loading ? <Skeleton className="h-8 w-12" /> : stats.totalAttempts}
               <Users className="h-6 w-6 text-purple-600" />
             </CardTitle>
           </CardHeader>
@@ -128,7 +116,7 @@ export function TeacherDashboard() {
           <CardHeader className="pb-3">
             <CardDescription className="text-sm font-medium">Completed Attempts</CardDescription>
             <CardTitle className="text-3xl font-bold flex items-center gap-2">
-              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.completedAttempts}
+              {loading ? <Skeleton className="h-8 w-12" /> : stats.completedAttempts}
               <TrendingUp className="h-6 w-6 text-orange-600" />
             </CardTitle>
           </CardHeader>
@@ -139,7 +127,7 @@ export function TeacherDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card 
           className="cursor-pointer hover:bg-accent transition-all hover:shadow-md border-2 hover:border-primary"
           onClick={() => navigate('/teacher/exams/create')}
@@ -209,12 +197,12 @@ export function TeacherDashboard() {
       {/* Exams List */}
       <Card className="shadow-lg">
         <CardHeader className="bg-muted/50">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="text-2xl">My Exams</CardTitle>
-              <CardDescription className="mt-1">All exams you've created and managed</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">My Exams</CardTitle>
+              <CardDescription className="mt-1 text-sm">All exams you've created and managed</CardDescription>
             </div>
-            <Button onClick={() => navigate('/teacher/exams/create')} size="lg">
+            <Button onClick={() => navigate('/teacher/exams/create')} size="lg" className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Create New Exam
             </Button>

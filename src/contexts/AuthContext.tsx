@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, ReactNode, useMemo, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase, UserRole, UserProfile } from '@/lib/supabase'
 
@@ -21,6 +21,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const currentUserIdRef = useRef<string | null>(null)
+
+  // Memoize fetchUserProfile to prevent recreation on every render
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    try {
+      // Reduced timeout - 2 seconds is enough for profile fetch
+      const queryPromise = supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout after 2 seconds')), 2000)
+      )
+
+      const { data, error } = await Promise.race([
+        queryPromise.then(({ data, error }) => ({ data, error })),
+        timeoutPromise
+      ]) as { data: any, error: any }
+
+      if (error) {
+        // If profile doesn't exist (PGRST116), that's okay - user might need to sign up again
+        setProfile(null)
+      } else {
+        setProfile(data as UserProfile)
+      }
+    } catch (error: any) {
+      setProfile(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -53,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false)
         }
       })
-      .catch((error) => {
+      .catch(() => {
         clearTimeout(timeout)
         if (mounted) {
           setLoading(false)
@@ -63,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return
       
       const newUserId = session?.user?.id ?? null
@@ -88,40 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeout)
       subscription.unsubscribe()
     }
-  }, [])
+  }, [fetchUserProfile])
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      // Reduced timeout - 2 seconds is enough for profile fetch
-      const queryPromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout after 2 seconds')), 2000)
-      )
-
-      const { data, error } = await Promise.race([
-        queryPromise.then(({ data, error }) => ({ data, error })),
-        timeoutPromise
-      ]) as { data: any, error: any }
-
-      if (error) {
-        // If profile doesn't exist (PGRST116), that's okay - user might need to sign up again
-        setProfile(null)
-      } else {
-        setProfile(data as UserProfile)
-      }
-    } catch (error: any) {
-      setProfile(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       setLoading(true)
       
@@ -148,9 +149,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return { error: error || new Error('Sign in failed') }
     }
-  }
+  }, [fetchUserProfile])
 
-  const signUp = async (email: string, password: string, role: UserRole, fullName?: string) => {
+  const signUp = useCallback(async (email: string, password: string, role: UserRole, fullName?: string) => {
     try {
       setLoading(true)
       
@@ -225,9 +226,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return { error: error || new Error('Signup failed') }
     }
-  }
+  }, [fetchUserProfile])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       setProfile(null)
       setUser(null)
@@ -236,28 +237,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       // Error signing out
     }
-  }
+  }, [])
 
-  const getDashboardRoute = (): string => {
+  // Memoize getDashboardRoute to prevent recreation
+  const getDashboardRoute = useCallback((): string => {
     // If no profile, redirect to auth
     if (!profile) return '/auth'
     // Return role-specific dashboard
     return profile.role === 'teacher' ? '/teacher/dashboard' : '/student/dashboard'
-  }
+  }, [profile])
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    user,
+    profile,
+    session,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    getDashboardRoute,
+  }), [user, profile, session, loading, signIn, signUp, signOut, getDashboardRoute])
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        session,
-        loading,
-        signIn,
-        signUp,
-        signOut,
-        getDashboardRoute,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )
