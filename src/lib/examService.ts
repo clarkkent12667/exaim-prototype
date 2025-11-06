@@ -58,6 +58,7 @@ export interface StudentAnswer {
   score: number
   ai_evaluation?: any
   evaluated_at?: string
+  time_spent_seconds?: number
   created_at?: string
 }
 

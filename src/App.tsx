@@ -18,10 +18,8 @@ const ViewStudentAttempts = lazy(() => import('./pages/ViewStudentAttempts').the
 const StudentAttemptHistory = lazy(() => import('./pages/StudentAttemptHistory').then(m => ({ default: m.StudentAttemptHistory })))
 const AllStudentAttempts = lazy(() => import('./pages/AllStudentAttempts').then(m => ({ default: m.AllStudentAttempts })))
 const ManageClasses = lazy(() => import('./pages/ManageClasses').then(m => ({ default: m.ManageClasses })))
-const TeacherAnalytics = lazy(() => import('./pages/TeacherAnalytics').then(m => ({ default: m.TeacherAnalytics })))
-const StudentAnalytics = lazy(() => import('./pages/StudentAnalytics').then(m => ({ default: m.StudentAnalytics })))
-const TeacherGrades = lazy(() => import('./pages/TeacherGrades').then(m => ({ default: m.TeacherGrades })))
-const StudentGrades = lazy(() => import('./pages/StudentGrades').then(m => ({ default: m.StudentGrades })))
+const ViewGrades = lazy(() => import('./pages/ViewGrades').then(m => ({ default: m.ViewGrades })))
+const StudentViewGrades = lazy(() => import('./pages/StudentViewGrades').then(m => ({ default: m.StudentViewGrades })))
 
 // Loading fallback component - using skeleton for better perceived performance
 const PageLoader = () => <PageSkeleton />
@@ -186,31 +184,11 @@ function AppRoutes() {
               }
             />
             <Route
-              path="/teacher/analytics"
-              element={
-                <ProtectedRoute allowedRoles={['teacher']}>
-                  <Suspense fallback={<PageLoader />}>
-                    <TeacherAnalytics />
-                  </Suspense>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/student/analytics"
-              element={
-                <ProtectedRoute allowedRoles={['student']}>
-                  <Suspense fallback={<PageLoader />}>
-                    <StudentAnalytics />
-                  </Suspense>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/teacher/grades"
               element={
                 <ProtectedRoute allowedRoles={['teacher']}>
                   <Suspense fallback={<PageLoader />}>
-                    <TeacherGrades />
+                    <ViewGrades />
                   </Suspense>
                 </ProtectedRoute>
               }
@@ -220,7 +198,7 @@ function AppRoutes() {
               element={
                 <ProtectedRoute allowedRoles={['student']}>
                   <Suspense fallback={<PageLoader />}>
-                    <StudentGrades />
+                    <StudentViewGrades />
                   </Suspense>
                 </ProtectedRoute>
               }

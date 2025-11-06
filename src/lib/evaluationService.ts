@@ -112,12 +112,8 @@ export const evaluationService = {
       totalScore = Math.min(totalScore, question.marks)
     }
 
-    // Question is correct if all non-empty blanks are correct
-    const nonEmptyCorrectAnswers = correctAnswers.filter(a => a !== '')
-    const isCorrect = correctCount >= nonEmptyCorrectAnswers.length && nonEmptyCorrectAnswers.length > 0
-    
-    // Set is_correct: true if full marks, false if 0 marks, undefined if partial credit
-    const isCorrectStatus = totalScore >= question.marks ? true : (totalScore === 0 ? false : undefined)
+    // Set is_correct: true if full marks, false otherwise (including partial credit)
+    const isCorrectStatus = totalScore >= question.marks
 
     return { is_correct: isCorrectStatus, score: totalScore }
   },

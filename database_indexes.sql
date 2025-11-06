@@ -85,6 +85,10 @@ ON exams(exam_board_id);
 CREATE INDEX IF NOT EXISTS idx_exams_published 
 ON exams(is_published) WHERE is_published = true;
 
+-- Composite index for topic/subtopic analytics
+CREATE INDEX IF NOT EXISTS idx_exams_topic_subtopic 
+ON exams(topic_id, subtopic_id);
+
 -- ============================================
 -- STUDENT ANSWERS INDEXES
 -- ============================================
@@ -96,6 +100,15 @@ ON student_answers(attempt_id);
 -- Index for filtering answers by question_id
 CREATE INDEX IF NOT EXISTS idx_student_answers_question_id 
 ON student_answers(question_id);
+
+-- Composite index for analytics queries (question_id + is_correct)
+CREATE INDEX IF NOT EXISTS idx_student_answers_question_correct 
+ON student_answers(question_id, is_correct);
+
+-- Index for time-based analytics
+CREATE INDEX IF NOT EXISTS idx_student_answers_time_spent 
+ON student_answers(time_spent_seconds) 
+WHERE time_spent_seconds > 0;
 
 -- ============================================
 -- QUESTIONS INDEXES

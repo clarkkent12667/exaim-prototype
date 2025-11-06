@@ -7,10 +7,12 @@ import { attemptService, examService, type ExamAttempt, type Exam } from '@/lib/
 import { subjectService } from '@/lib/qualificationService'
 import { ArrowLeft, CheckCircle2, Clock, Eye, Loader2 } from 'lucide-react'
 
+type ExamWithSubject = Exam & { subject_name?: string }
+
 export function StudentAttemptHistory() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [attempts, setAttempts] = useState<(ExamAttempt & { exam?: Exam })[]>([])
+  const [attempts, setAttempts] = useState<(ExamAttempt & { exam?: ExamWithSubject })[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

@@ -14,7 +14,8 @@
     "deploy:functions": "supabase functions deploy generate-questions evaluate-open-ended",
     "deploy:generate-questions": "supabase functions deploy generate-questions",
     "deploy:evaluate-open-ended": "supabase functions deploy evaluate-open-ended",
-    "setup:test-data": "tsx scripts/setup-test-data.ts"
+    "setup:test-data": "tsx scripts/setup-test-data.ts",
+    "create:reattempts": "tsx scripts/create-reattempts.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.1",

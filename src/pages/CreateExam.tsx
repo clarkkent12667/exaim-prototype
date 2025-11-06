@@ -20,7 +20,7 @@ export function CreateExam() {
   const [generating, setGenerating] = useState(false)
   const [mode, setMode] = useState<'ai' | 'manual'>('ai')
   const [examId, setExamId] = useState<string | null>(null)
-  const [questions, setQuestions] = useState<(Question & { options?: any[] })[]>([])
+  const [questions, setQuestions] = useState<(Partial<Question> & { options?: any[] })[]>([])
   const [showReview, setShowReview] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
 
@@ -296,7 +296,7 @@ export function CreateExam() {
   }
 
   const addNewQuestion = () => {
-    const newQuestion: Question & { options?: any[] } = {
+    const newQuestion: Omit<Question, 'id' | 'exam_id' | 'created_at' | 'updated_at'> & { options?: any[] } = {
       question_text: '',
       question_type: 'mcq',
       marks: 1,
@@ -432,7 +432,13 @@ export function CreateExam() {
           }
         } else {
           // Create new question
-          const { data: savedQuestion, error: qError } = await questionService.createWithOptions(
+          if (!savedExamId) {
+            throw new Error('Exam ID is required to create questions')
+          }
+          if (!question.question_text || !question.question_type || question.marks === undefined || !question.model_answer) {
+            throw new Error('Question is missing required fields')
+          }
+          const { data: savedQuestion } = await questionService.createWithOptions(
             {
               exam_id: savedExamId,
               question_text: question.question_text,
@@ -509,7 +515,7 @@ export function CreateExam() {
                       <CardTitle className="flex items-center gap-2">
                         Question {index + 1}
                         <span className="text-sm font-normal text-muted-foreground">
-                          ({question.question_type.toUpperCase()})
+                          ({question.question_type?.toUpperCase() || 'UNKNOWN'})
                         </span>
                       </CardTitle>
                       <CardDescription>
@@ -672,7 +678,7 @@ export function CreateExam() {
                         <Label className="text-base font-semibold mb-2">Question Text</Label>
                         {question.question_type === 'fib' ? (
                           <div className="text-base p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            {renderFibQuestion(question.question_text, question.correct_answer, question.model_answer).map((part, partIdx) => (
+                            {renderFibQuestion(question.question_text || '', question.correct_answer || '', question.model_answer || '').map((part, partIdx) => (
                               part.type === 'blank' ? (
                                 <Blank
                                   key={partIdx}
@@ -928,13 +934,13 @@ export function CreateExam() {
                 <>
                   <div className="flex gap-4 mb-4">
                     <Button
-                      variant={mode === 'ai' ? 'default' : 'outline'}
+                      variant="default"
                       onClick={() => setMode('ai')}
                     >
                       AI Generation
                     </Button>
                     <Button
-                      variant={mode === 'manual' ? 'default' : 'outline'}
+                      variant="outline"
                       onClick={() => setMode('manual')}
                     >
                       Manual Creation
@@ -1009,13 +1015,13 @@ export function CreateExam() {
               {mode === 'manual' && (
                 <div className="flex gap-4 mb-4">
                   <Button
-                    variant={mode === 'ai' ? 'outline' : 'default'}
+                    variant="outline"
                     onClick={() => setMode('ai')}
                   >
                     AI Generation
                   </Button>
                   <Button
-                    variant={mode === 'manual' ? 'default' : 'outline'}
+                    variant="default"
                     onClick={() => setMode('manual')}
                   >
                     Manual Creation

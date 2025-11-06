@@ -29,6 +29,8 @@ export function TakeExam() {
   const [startedAt, setStartedAt] = useState<Date | null>(null)
   const [submittedQuestions, setSubmittedQuestions] = useState<Record<string, { is_correct?: boolean; score: number; ai_evaluation?: any }>>({})
   const [checkingQuestion, setCheckingQuestion] = useState<string | null>(null)
+  const [questionViewTimes, setQuestionViewTimes] = useState<Record<string, number>>({})
+  const [currentQuestionStartTime, setCurrentQuestionStartTime] = useState<number | null>(null)
 
   useEffect(() => {
     if (id && user) {
@@ -46,6 +48,27 @@ export function TakeExam() {
 
     return () => clearInterval(interval)
   }, [attempt, answers])
+
+  // Track question view time
+  useEffect(() => {
+    if (questions.length > 0 && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length) {
+      const questionId = questions[currentQuestionIndex].id
+      setCurrentQuestionStartTime(Date.now())
+      
+      return () => {
+        // When leaving a question, calculate time spent
+        if (currentQuestionStartTime !== null) {
+          const timeSpent = Math.floor((Date.now() - currentQuestionStartTime) / 1000)
+          if (timeSpent > 0) {
+            setQuestionViewTimes(prev => ({
+              ...prev,
+              [questionId]: (prev[questionId] || 0) + timeSpent
+            }))
+          }
+        }
+      }
+    }
+  }, [currentQuestionIndex, questions])
 
   const loadExam = async () => {
     console.log('[TakeExam] Starting loadExam for exam:', id)
@@ -189,6 +212,13 @@ export function TakeExam() {
 
     const answerText = answers[questionToSave.id] || ''
     
+    // Calculate time spent on this question
+    let timeSpent = questionViewTimes[questionToSave.id] || 0
+    if (currentQuestionStartTime !== null && questionToSave.id === questions[currentQuestionIndex]?.id) {
+      const additionalTime = Math.floor((Date.now() - currentQuestionStartTime) / 1000)
+      timeSpent += additionalTime
+    }
+    
     // For MCQ and FIB, evaluate instantly
     let score = 0
     let is_correct: boolean | undefined = undefined
@@ -227,6 +257,7 @@ export function TakeExam() {
       score,
       is_correct,
       evaluated_at,
+      time_spent_seconds: timeSpent > 0 ? timeSpent : undefined,
     })
   }
 
@@ -267,7 +298,7 @@ export function TakeExam() {
       await saveAnswers(questionId)
 
       // Evaluate the answer
-      let evaluation: { is_correct: boolean; score: number } | null = null
+      let evaluation: { is_correct: boolean; score: number; ai_evaluation?: any } | null = null
 
       if (question.question_type === 'mcq' && question.options) {
         evaluation = await evaluationService.evaluateMCQ(
@@ -285,10 +316,9 @@ export function TakeExam() {
           question,
           answers[questionId]
         )
-        // For open-ended, don't set is_correct - leave it undefined so partially correct logic works
-        // is_correct will be determined based on score: full marks = correct, 0 = incorrect, otherwise = partially correct
+        // For open-ended, is_correct is determined based on score: full marks = correct, otherwise = incorrect
         evaluation = { 
-          is_correct: result.score >= question.marks ? true : (result.score === 0 ? false : undefined), 
+          is_correct: result.score >= question.marks, 
           score: result.score,
           ai_evaluation: result.ai_evaluation
         }
@@ -364,15 +394,17 @@ export function TakeExam() {
         allAnswers
       )
 
-      // Update all answers with evaluation results in parallel batches
-      const updatePromises = evaluatedAnswers.map(evaluatedAnswer =>
-        answerService.update(evaluatedAnswer.id, {
+      // Update all answers with evaluation results and time tracking in parallel batches
+      const updatePromises = evaluatedAnswers.map(evaluatedAnswer => {
+        const timeSpent = questionViewTimes[evaluatedAnswer.question_id] || 0
+        return answerService.update(evaluatedAnswer.id, {
           is_correct: evaluatedAnswer.is_correct,
           score: evaluatedAnswer.score,
           ai_evaluation: evaluatedAnswer.ai_evaluation,
           evaluated_at: evaluatedAnswer.evaluated_at,
+          time_spent_seconds: timeSpent > 0 ? timeSpent : undefined,
         })
-      )
+      })
       await Promise.all(updatePromises)
 
       // Update attempt with total score (round to whole number)
@@ -389,9 +421,10 @@ export function TakeExam() {
       const stats = {
         correct_count: evaluatedAnswers.filter(a => a.is_correct === true && a.answer_text && a.answer_text.trim() !== '').length,
         incorrect_count: evaluatedAnswers.filter(a => a.is_correct === false && a.answer_text && a.answer_text.trim() !== '').length,
-        partially_correct_count: evaluatedAnswers.filter(a => 
-          a.is_correct === undefined && a.score > 0 && a.score < questions.find(q => q.id === a.question_id)?.marks && a.answer_text && a.answer_text.trim() !== ''
-        ).length,
+        partially_correct_count: evaluatedAnswers.filter(a => {
+          const question = questions.find(q => q.id === a.question_id)
+          return a.is_correct === undefined && a.score > 0 && question && a.score < question.marks && a.answer_text && a.answer_text.trim() !== ''
+        }).length,
         skipped_count: skippedCount,
         total_questions: questions.length,
       }

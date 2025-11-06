@@ -146,9 +146,10 @@ export function ExamResults() {
       const stats = {
         correct_count: evaluatedAnswers.filter(a => a.is_correct === true && a.answer_text && a.answer_text.trim() !== '').length,
         incorrect_count: evaluatedAnswers.filter(a => a.is_correct === false && a.answer_text && a.answer_text.trim() !== '').length,
-        partially_correct_count: evaluatedAnswers.filter(a => 
-          a.is_correct === undefined && a.score > 0 && a.score < questionsData.find(q => q.id === a.question_id)?.marks && a.answer_text && a.answer_text.trim() !== ''
-        ).length,
+        partially_correct_count: evaluatedAnswers.filter(a => {
+          const question = questionsData.find(q => q.id === a.question_id)
+          return a.is_correct === undefined && a.score > 0 && question && a.score < question.marks && a.answer_text && a.answer_text.trim() !== ''
+        }).length,
         skipped_count: skippedCount,
         total_questions: questionsData.length,
       }
@@ -230,9 +231,10 @@ export function ExamResults() {
   const calculatedStats = statistics || {
     correct_count: answers.filter(a => a.is_correct === true && a.answer_text && a.answer_text.trim() !== '').length,
     incorrect_count: answers.filter(a => a.is_correct === false && a.answer_text && a.answer_text.trim() !== '').length,
-    partially_correct_count: answers.filter(a => 
-      a.is_correct === undefined && a.score > 0 && a.score < questions.find(q => q.id === a.question_id)?.marks && a.answer_text && a.answer_text.trim() !== ''
-    ).length,
+    partially_correct_count: answers.filter(a => {
+      const question = questions.find(q => q.id === a.question_id)
+      return a.is_correct === undefined && a.score > 0 && question && a.score < question.marks && a.answer_text && a.answer_text.trim() !== ''
+    }).length,
     skipped_count: skippedCount,
     total_questions: questions.length,
   }

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { 
   qualificationService, 
   examBoardService, 
@@ -144,7 +143,7 @@ A-Level,OCR,Physics,Mechanics,Energy`
       const values = parseCSVLine(lines[i])
       const row: any = {}
       
-      requiredHeaders.forEach((reqHeader, idx) => {
+      requiredHeaders.forEach((reqHeader) => {
         const actualHeader = headerMap[reqHeader]
         const headerIndex = headers.indexOf(actualHeader)
         row[reqHeader === 'Exam Board' ? 'Exam Board' : reqHeader] = values[headerIndex] || ''
@@ -198,7 +197,9 @@ A-Level,OCR,Physics,Mechanics,Energy`
             
             if (existingQual) {
               qualificationId = existingQual.id
-              qualificationMap.set(row.Qualification, qualificationId)
+              if (qualificationId) {
+                qualificationMap.set(row.Qualification, qualificationId)
+              }
             } else {
               const { data: newQual, error } = await qualificationService.create({
                 name: row.Qualification,
@@ -206,7 +207,9 @@ A-Level,OCR,Physics,Mechanics,Energy`
               if (error) throw new Error(`Failed to create qualification "${row.Qualification}": ${error.message}`)
               if (newQual) {
                 qualificationId = newQual.id
-                qualificationMap.set(row.Qualification, qualificationId)
+                if (qualificationId) {
+                  qualificationMap.set(row.Qualification, qualificationId)
+                }
                 createdCount++
               }
             }
@@ -220,21 +223,25 @@ A-Level,OCR,Physics,Mechanics,Energy`
           if (!examBoardId && qualificationId && row['Exam Board']) {
             const key = `${qualificationId}:${row['Exam Board']}`
             // Check if it already exists
-            const { data: existing } = await examBoardService.getByQualification(qualificationId)
+            const { data: existing } = await examBoardService.getByQualification(qualificationId!)
             const existingBoard = existing?.find(b => b.name === row['Exam Board'])
             
             if (existingBoard) {
               examBoardId = existingBoard.id
-              examBoardMap.set(key, examBoardId)
+              if (examBoardId) {
+                examBoardMap.set(key, examBoardId)
+              }
             } else {
               const { data: newBoard, error } = await examBoardService.create({
                 name: row['Exam Board'],
-                qualification_id: qualificationId,
+                qualification_id: qualificationId!,
               })
               if (error) throw new Error(`Failed to create exam board "${row['Exam Board']}": ${error.message}`)
               if (newBoard) {
                 examBoardId = newBoard.id
-                examBoardMap.set(key, examBoardId)
+                if (examBoardId) {
+                  examBoardMap.set(key, examBoardId)
+                }
                 createdCount++
               }
             }
@@ -248,21 +255,25 @@ A-Level,OCR,Physics,Mechanics,Energy`
           if (!subjectId && examBoardId && row.Subject) {
             const key = `${examBoardId}:${row.Subject}`
             // Check if it already exists
-            const { data: existing } = await subjectService.getByExamBoard(examBoardId)
+            const { data: existing } = await subjectService.getByExamBoard(examBoardId!)
             const existingSubject = existing?.find(s => s.name === row.Subject)
             
             if (existingSubject) {
               subjectId = existingSubject.id
-              subjectMap.set(key, subjectId)
+              if (subjectId) {
+                subjectMap.set(key, subjectId)
+              }
             } else {
               const { data: newSubject, error } = await subjectService.create({
                 name: row.Subject,
-                exam_board_id: examBoardId,
+                exam_board_id: examBoardId!,
               })
               if (error) throw new Error(`Failed to create subject "${row.Subject}": ${error.message}`)
               if (newSubject) {
                 subjectId = newSubject.id
-                subjectMap.set(key, subjectId)
+                if (subjectId) {
+                  subjectMap.set(key, subjectId)
+                }
                 createdCount++
               }
             }
@@ -276,21 +287,25 @@ A-Level,OCR,Physics,Mechanics,Energy`
           if (!topicId && subjectId && row.Topic) {
             const key = `${subjectId}:${row.Topic}`
             // Check if it already exists
-            const { data: existing } = await topicService.getBySubject(subjectId)
+            const { data: existing } = await topicService.getBySubject(subjectId!)
             const existingTopic = existing?.find(t => t.name === row.Topic)
             
             if (existingTopic) {
               topicId = existingTopic.id
-              topicMap.set(key, topicId)
+              if (topicId) {
+                topicMap.set(key, topicId)
+              }
             } else {
               const { data: newTopic, error } = await topicService.create({
                 name: row.Topic,
-                subject_id: subjectId,
+                subject_id: subjectId!,
               })
               if (error) throw new Error(`Failed to create topic "${row.Topic}": ${error.message}`)
               if (newTopic) {
                 topicId = newTopic.id
-                topicMap.set(key, topicId)
+                if (topicId) {
+                  topicMap.set(key, topicId)
+                }
                 createdCount++
               }
             }
@@ -307,7 +322,7 @@ A-Level,OCR,Physics,Mechanics,Energy`
               if (!existingSubtopic) {
                 const { data: newSubtopic, error } = await subtopicService.create({
                   name: row.Subtopic,
-                  topic_id: topicId,
+                  topic_id: topicId!,
                 })
                 if (error) throw new Error(`Failed to create subtopic "${row.Subtopic}": ${error.message}`)
                 if (newSubtopic) {

@@ -13,7 +13,6 @@ import {
   PanelLeftOpen,
   Users,
   BarChart3,
-  BookOpen,
 } from 'lucide-react'
 
 interface MenuItem {
@@ -37,21 +36,15 @@ const teacherMenuItems: MenuItem[] = [
     roles: ['teacher'],
   },
   {
-    label: 'Manage Classes',
-    icon: <Users className="h-5 w-5" />,
-    path: '/teacher/classes',
-    roles: ['teacher'],
-  },
-  {
-    label: 'Grades',
-    icon: <BookOpen className="h-5 w-5" />,
+    label: 'View Grades',
+    icon: <BarChart3 className="h-5 w-5" />,
     path: '/teacher/grades',
     roles: ['teacher'],
   },
   {
-    label: 'Analytics',
-    icon: <BarChart3 className="h-5 w-5" />,
-    path: '/teacher/analytics',
+    label: 'Manage Classes',
+    icon: <Users className="h-5 w-5" />,
+    path: '/teacher/classes',
     roles: ['teacher'],
   },
   {
@@ -70,15 +63,9 @@ const studentMenuItems: MenuItem[] = [
     roles: ['student'],
   },
   {
-    label: 'My Grades',
-    icon: <BookOpen className="h-5 w-5" />,
-    path: '/student/grades',
-    roles: ['student'],
-  },
-  {
-    label: 'Analytics',
+    label: 'View Grades',
     icon: <BarChart3 className="h-5 w-5" />,
-    path: '/student/analytics',
+    path: '/student/grades',
     roles: ['student'],
   },
 ]

@@ -1,4 +1,15 @@
-# Test Data Setup Script
+# Test Data Setup Scripts
+
+This directory contains scripts to help you quickly set up test data for the application.
+
+## Available Scripts
+
+1. **setup-test-data.ts** - Creates students, classes, and initial exam attempts
+2. **create-reattempts.ts** - Creates 2-3 reattempts for existing students on an existing exam
+
+---
+
+## Script 1: setup-test-data.ts
 
 This script helps you quickly set up test data for the application, including students, classes, exam assignments, and exam attempts with varying performance levels.
 
@@ -141,4 +152,84 @@ To remove test data, you can:
      SELECT id FROM profiles WHERE email LIKE 'student%.chemistry@test.com'
    );
    ```
+
+---
+
+## Script 2: create-reattempts.ts
+
+This script creates 2-3 exam attempts (reattempts) for 10 existing students on an existing exam, with varying performance levels. This is useful for testing grade sheets and analytics with multiple attempts per student.
+
+### What It Does
+
+The script will:
+1. **Find 10 existing students** from the database
+2. **Find an existing exam** (prefers published exams, but will use any exam)
+3. **Create 2-3 attempts per student** with:
+   - Varying performance levels (good, bad, average)
+   - Realistic answer generation based on performance
+   - Proper scoring and statistics
+   - Different timestamps (attempts spaced 24 hours apart)
+
+### Prerequisites
+
+1. **At least 10 students** must exist in the system
+2. **At least one exam** with questions must exist
+3. **Environment variables** set up (see below)
+
+### Setup
+
+Same as Script 1 - ensure your `.env` file has:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
+
+### Usage
+
+```bash
+npm run create:reattempts
+```
+
+Or directly with tsx:
+
+```bash
+npx tsx scripts/create-reattempts.ts
+```
+
+### What Happens
+
+The script will:
+- Fetch the first 10 students from the database
+- Find an existing exam (prefers published)
+- Load all questions from the exam
+- For each student, create 2-3 attempts with:
+  - First attempt: Good, bad, or average performance (distributed)
+  - Subsequent attempts: May improve, stay same, or get worse (60% chance of improvement)
+- Each attempt is marked as completed with proper scores and statistics
+
+### Performance Distribution
+
+- **First attempts**: 3 good, 4 average, 3 bad (distributed across students)
+- **Subsequent attempts**: Realistic progression (most students improve)
+
+### Use Cases
+
+This script is perfect for:
+- Testing grade sheets with multiple attempts per student
+- Testing analytics with reattempt data
+- Seeing how the system handles students who retake exams
+- Testing improvement tracking over multiple attempts
+
+### Troubleshooting
+
+### "No students found"
+- Make sure you have at least 10 students in the database
+- Check that students have `role = 'student'` in the profiles table
+
+### "No exam found"
+- Create at least one exam (published or unpublished)
+- Make sure the exam has at least one question
+
+### "Exam has no questions"
+- Add questions to your exam before running the script
 
