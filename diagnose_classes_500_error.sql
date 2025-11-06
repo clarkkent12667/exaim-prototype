@@ -67,3 +67,4 @@ GROUP BY p.proname, p.oid;
 -- Uncomment the line below to test:
 -- SELECT * FROM public.classes LIMIT 1;
 
+

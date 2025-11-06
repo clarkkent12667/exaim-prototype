@@ -99,6 +99,24 @@ export function Sidebar() {
     window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { isCollapsed } }))
   }, [isCollapsed])
 
+  // Memoize menu items to prevent recalculation - must be called before early returns
+  const menuItems = useMemo(
+    () => profile?.role === 'teacher' ? teacherMenuItems : studentMenuItems,
+    [profile?.role]
+  )
+  
+  // Memoize isActive function - must be called before early returns
+  const isActive = useCallback((path: string) => location.pathname === path, [location.pathname])
+
+  const handleSignOut = useCallback(async () => {
+    await signOut()
+    navigate('/auth', { replace: true })
+  }, [signOut, navigate])
+
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed((prev: boolean) => !prev)
+  }, [])
+
   // Don't hide sidebar during loading - only hide if we're definitely not authenticated
   // This prevents the sidebar from flickering during auth state transitions
   if (loading) {
@@ -137,24 +155,6 @@ export function Sidebar() {
       </aside>
     )
   }
-
-  // Memoize menu items to prevent recalculation
-  const menuItems = useMemo(
-    () => profile.role === 'teacher' ? teacherMenuItems : studentMenuItems,
-    [profile.role]
-  )
-  
-  // Memoize isActive function
-  const isActive = useCallback((path: string) => location.pathname === path, [location.pathname])
-
-  const handleSignOut = useCallback(async () => {
-    await signOut()
-    navigate('/auth', { replace: true })
-  }, [signOut, navigate])
-
-  const toggleCollapse = useCallback(() => {
-    setIsCollapsed((prev: boolean) => !prev)
-  }, [])
 
   const SidebarContent = () => (
     <div className={`flex h-full flex-col bg-card border-r transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>

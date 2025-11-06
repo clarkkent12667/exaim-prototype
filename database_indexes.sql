@@ -135,3 +135,4 @@ ON profiles(role);
 -- To drop an index if needed:
 -- DROP INDEX IF EXISTS idx_exam_attempts_exam_id;
 
+

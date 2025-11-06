@@ -219,3 +219,4 @@ BEGIN
   RAISE NOTICE 'All policies have been recreated with proper helper functions.';
 END $$;
 
+

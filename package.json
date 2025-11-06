@@ -13,7 +13,8 @@
     "test:coverage": "vitest --coverage",
     "deploy:functions": "supabase functions deploy generate-questions evaluate-open-ended",
     "deploy:generate-questions": "supabase functions deploy generate-questions",
-    "deploy:evaluate-open-ended": "supabase functions deploy evaluate-open-ended"
+    "deploy:evaluate-open-ended": "supabase functions deploy evaluate-open-ended",
+    "setup:test-data": "tsx scripts/setup-test-data.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.1",
@@ -51,8 +52,10 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.11",
     "jsdom": "^25.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.3",
     "vite": "^5.4.2",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "dotenv": "^16.4.7"
   }
 }

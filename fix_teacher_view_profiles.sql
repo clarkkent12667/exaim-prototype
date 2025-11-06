@@ -66,3 +66,4 @@ CREATE POLICY "Teachers can view student profiles"
 -- This alternative is more secure but might be slower for large datasets
 -- ============================================
 
+

@@ -174,3 +174,4 @@ BEGIN
   RAISE NOTICE 'is_enrolled_in_class() and owns_class() functions bypass RLS to prevent recursion.';
 END $$;
 
+

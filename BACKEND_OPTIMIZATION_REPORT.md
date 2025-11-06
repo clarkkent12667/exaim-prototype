@@ -183,3 +183,4 @@ CREATE INDEX IF NOT EXISTS idx_exam_assignments_exam_id ON exam_assignments(exam
 5. Test with production-like data volumes
 6. Deploy and monitor performance
 
+
